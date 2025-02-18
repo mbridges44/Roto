@@ -1,18 +1,15 @@
-//
-//  RotoApp.swift
-//  Roto
-//
-//  Created by Michael Bridges on 2/10/25.
-//
-
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct RotoApp: App {
+    @AppStorage("isFirstLaunch") private var isFirstLaunch = true
+
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
+            UserProfile.self,  // Add UserProfile to the schema
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +22,16 @@ struct RotoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ZStack {
+                // Global background color (covers the entire screen)
+                Color("BrandBackground")
+                    .ignoresSafeArea()
+                if isFirstLaunch {
+                    FirstTimeView()
+                } else {
+                    FirstTimeView()  // You'll need to create this view
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
     }

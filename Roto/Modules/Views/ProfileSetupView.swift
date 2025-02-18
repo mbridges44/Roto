@@ -1,20 +1,26 @@
 import SwiftUI
 import SwiftData
 
+
+
 struct ProfileSetupView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.appStyle) private var style
-
+    @EnvironmentObject private var navigationVM: NavigationViewModel
+    @AppStorage("isFirstLaunch") private var isFirstLaunch = true
+    
     @State private var baseIngredients: [String] = []
     @State private var dislikes: [String] = []
     @State private var newBaseIngredient: String = ""
     @State private var newDislike: String = ""
     @State private var selectedDietCategories: Set<DietCategoriesEnum> = []
+    @State private var showingSaveSuccess = false
     
     var body: some View {
-        NavigationView {
+        ScrollView {
             VStack(alignment: .leading, spacing: style.sectionSpacing) {
-                VStack(alignment: .leading, spacing: 8) {
+                // Base Pantry Ingredients Section
+                VStack(alignment: .leading, spacing: 12) {
                     AppSectionHeader(title: "Base Pantry Ingredients")
                     
                     AppStyledTextField(
@@ -22,73 +28,110 @@ struct ProfileSetupView: View {
                         text: $newBaseIngredient,
                         onSubmit: addBaseIngredient
                     )
-                
+                    
+                    if !baseIngredients.isEmpty {
+                        VStack(spacing: 8) {
+                            ForEach(baseIngredients, id: \.self) { ingredient in
+                                ListItemView(
+                                    text: ingredient,
+                                    onDelete: { deleteIngredient(ingredient) }
+                                )
+                            }
+                        }
+                    }
                 }
-                VStack(alignment: .leading, spacing: 8) {
+                .padding(.bottom, 8)
+                
+                // Foods to Avoid Section
+                VStack(alignment: .leading, spacing: 12) {
                     AppSectionHeader(title: "Foods to Avoid")
-                    // Section for Dislikes.
+                    
                     AppStyledTextField(
                         placeholder: "Add Food To Avoid",
                         text: $newDislike,
                         onSubmit: addDislike
                     )
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    // Section for Diet
-                    Section(header: AppSectionHeader(title: "Dietary Restrictions")) {
-                        ForEach(DietCategoriesEnum.allCases) { category in
-                            Toggle(isOn: Binding(
-                                get: { selectedDietCategories.contains(category) },
-                                set: { isSelected in
-                                    if isSelected {
-                                        selectedDietCategories.insert(category)
-                                    } else {
-                                        selectedDietCategories.remove(category)
-                                    }
-                                }
-                            )) {
-                                Text(category.rawValue)
+                    
+                    if !dislikes.isEmpty {
+                        VStack(spacing: 8) {
+                            ForEach(dislikes, id: \.self) { dislike in
+                                ListItemView(
+                                    text: dislike,
+                                    onDelete: { deleteDislike(dislike) }
+                                )
                             }
                         }
                     }
-                    Spacer()
-                    // Save Button Section.
-                    Section {
-                        AppStyledButton(title: "Save", action: saveProfile)
-                            .padding(.top, 16)
+                }
+                
+                // Dietary Restrictions Section
+                VStack(alignment: .leading, spacing: 12) {
+                    AppSectionHeader(title: "Dietary Restrictions")
+                    
+                    ForEach(DietCategoriesEnum.allCases) { category in
+                        Toggle(isOn: Binding(
+                            get: { selectedDietCategories.contains(category) },
+                            set: { isSelected in
+                                if isSelected {
+                                    selectedDietCategories.insert(category)
+                                } else {
+                                    selectedDietCategories.remove(category)
+                                }
+                            }
+                        )) {
+                            Text(category.rawValue)
+                                .foregroundColor(style.primaryColor)
+                        }
+                        .padding(.vertical, 4)
                     }
-
+                }
+                
+                Spacer(minLength: 32)
+                
+                // Save Button
+                AppStyledButton(title: "Save Profile", action: saveProfileAndNavigate)
+            }
+            .padding(24)
+        }
+        .background(style.backgroundColor)
+        .navigationTitle("Your Profile")
+        
+        // Success Overlay
+        if showingSaveSuccess {
+            SuccessOverlay(message: "Profile Saved!") {
+                withAnimation {
+                    showingSaveSuccess = false
+                    isFirstLaunch = false
+                    navigationVM.navigateToRecipeCreate()
                 }
             }
-            .navigationTitle("Your Profile")
-            .padding(style.defaultPadding)
-            .background(style.backgroundColor)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
     
     // MARK: - Helper Functions
     
     private func addBaseIngredient() {
-        guard !newBaseIngredient.isEmpty else { return }
-        baseIngredients.append(newBaseIngredient)
+        guard !newBaseIngredient.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        baseIngredients.append(newBaseIngredient.trimmingCharacters(in: .whitespacesAndNewlines))
         newBaseIngredient = ""
     }
     
-    private func deleteBaseIngredient(at offsets: IndexSet) {
-        baseIngredients.remove(atOffsets: offsets)
+    private func deleteIngredient(_ ingredient: String) {
+        baseIngredients.removeAll { $0 == ingredient }
     }
     
     private func addDislike() {
-        guard !newDislike.isEmpty else { return }
-        dislikes.append(newDislike)
+        guard !newDislike.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        dislikes.append(newDislike.trimmingCharacters(in: .whitespacesAndNewlines))
         newDislike = ""
     }
     
-    private func deleteDislike(at offsets: IndexSet) {
-        dislikes.remove(atOffsets: offsets)
+    private func deleteDislike(_ dislike: String) {
+        dislikes.removeAll { $0 == dislike }
     }
     
-    private func saveProfile() {
+    private func saveProfileAndNavigate() {
         let profile = UserProfile(
             baseIngredients: baseIngredients,
             dislikes: dislikes,
@@ -96,12 +139,29 @@ struct ProfileSetupView: View {
         )
         let manager = ProfileDataManager(context: modelContext)
         manager.saveProfile(profile)
+        
+        withAnimation {
+            showingSaveSuccess = true
+        }
+        
+        // Auto-dismiss after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation {
+                showingSaveSuccess = false
+                isFirstLaunch = false
+                navigationVM.navigateToRecipeCreate()
+            }
+        }
     }
 }
 
+
 #Preview {
-    GlobalStyledView {
-        ProfileSetupView()
+    NavigationStack {
+        GlobalStyledView {
+            ProfileSetupView()
+        }
     }
+    .environmentObject(NavigationViewModel())  // Add this line
     .modelContainer(for: UserProfile.self, inMemory: true)
 }

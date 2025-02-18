@@ -3,70 +3,96 @@ import SwiftData
 
 struct RecipeInputView: View {
     @Environment(\.modelContext) private var modelContext
-    @State var ingredients: [String] = [] // List of ingredients
-    @State var dislikes: [String] = []
-    @State var newIngredient: String = "" // Temporary input for adding a new ingredient
-    @State var newDislike: String = ""    // Temporary input for adding a new dislike
-
-    // New state variables for navigation.
-    @State private var recipe: Recipe?
-    @State private var showRecipeDetail: Bool = false
-
+    @Environment(\.appStyle) private var style
+    @EnvironmentObject private var navigationVM: NavigationViewModel
+    
+    @State private var ingredients: [String] = []
+    @State private var dislikes: [String] = []
+    @State private var newIngredient: String = ""
+    @State private var newDislike: String = ""
+    @State private var isLoading = false
+    
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Your Pantry")) {
-                    if !ingredients.isEmpty {
-                        List {
-                            ForEach(ingredients, id: \.self) { ingredient in
-                                Text(ingredient)
+        VStack(spacing: 0) {
+            // Scrollable Content
+            ScrollView {
+                VStack(alignment: .leading, spacing: style.sectionSpacing) {
+                    // Base Pantry Ingredients Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader(title: "BASE PANTRY INGREDIENTS")
+                        
+                        AppStyledTextField(
+                            placeholder: "Add Base Ingredient",
+                            text: $newIngredient,
+                            onSubmit: addIngredientToList
+                        )
+                        
+                        if !ingredients.isEmpty {
+                            VStack(spacing: 8) {
+                                ForEach(ingredients, id: \.self) { ingredient in
+                                    ListItemView(
+                                        text: ingredient,
+                                        onDelete: { deleteIngredient(ingredient) }
+                                    )
+                                }
                             }
-                            .onDelete(perform: deleteIngredient)
                         }
                     }
-                    TextField("Add Ingredient", text: $newIngredient)
-                    Button("Add") {
-                        addIngredientToList()
-                    }
-                }
-                
-                Section(header: Text("Dislikes")) {
-                    if !dislikes.isEmpty {
-                        List {
-                            ForEach(dislikes, id: \.self) { dislike in
-                                Text(dislike)
+                    
+                    // Foods to Avoid Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader(title: "FOODS TO AVOID")
+                        
+                        AppStyledTextField(
+                            placeholder: "Add Avoided Food",
+                            text: $newDislike,
+                            onSubmit: addDislikeToList
+                        )
+                        
+                        if !dislikes.isEmpty {
+                            VStack(spacing: 8) {
+                                ForEach(dislikes, id: \.self) { dislike in
+                                    ListItemView(
+                                        text: dislike,
+                                        onDelete: { deleteDislike(dislike) }
+                                    )
+                                }
                             }
-                            .onDelete(perform: deleteDislike)
                         }
                     }
-                    TextField("Add Dislike", text: $newDislike)
-                    Button("Add") {
-                        addDislikeToList()
-                    }
                 }
-                
-                Section {
-                    Button("Submit") {
-                        submitData()
-                    }
-                }
+                .padding(24)
             }
-            .navigationTitle("Recipe Generator")
-            // Hidden NavigationLink to trigger navigation once recipe is available.
-            .background(
-                NavigationLink(
-                    destination: Group {
-                        if let recipe = recipe {
-                            RecipeDetailView(recipe: recipe)
+            
+            // Fixed Button Section at Bottom
+            VStack {
+                Divider()
+                Button(action: submitData) {
+                    HStack {
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
                         } else {
-                            EmptyView()
+                            Text("Generate Recipe")
+                                .font(.system(size: 16, weight: .semibold))
+                            Image(systemName: "wand.and.stars")
                         }
-                    },
-                    isActive: $showRecipeDetail,
-                    label: { EmptyView() }
-                )
-            )
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(isLoading ? style.primaryColor.opacity(0.7) : style.primaryColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .disabled(isLoading)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
+            }
+            .background(style.backgroundColor)
         }
+        .background(style.backgroundColor)
+        .navigationTitle("Recipe Generator")
     }
     
     // MARK: - List Management
@@ -80,63 +106,77 @@ struct RecipeInputView: View {
     }
     
     private func addToListAndClear(list: inout [String], item: inout String) {
-        guard !item.isEmpty else { return }
-        list.append(item)
-        item = "" // Clear the input field after adding
+        guard !item.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        list.append(item.trimmingCharacters(in: .whitespacesAndNewlines))
+        item = ""
     }
     
-    private func deleteIngredient(at offsets: IndexSet) {
-        ingredients.remove(atOffsets: offsets)
+    private func deleteIngredient(_ ingredient: String) {
+        ingredients.removeAll { $0 == ingredient }
     }
     
-    private func deleteDislike(at offsets: IndexSet) {
-        dislikes.remove(atOffsets: offsets)
+    private func deleteDislike(_ dislike: String) {
+        dislikes.removeAll { $0 == dislike }
     }
     
     // MARK: - Submission Logic
-    
     private func submitData() {
-        // Create the JSON payload from the ingredients and dislikes.
+        print("Starting recipe generation...")
+        guard !ingredients.isEmpty else {
+            print("No ingredients provided")
+            return
+        }
+        
         let payload: [String: Any] = [
             "ingredients": ingredients,
             "dislikes": dislikes
         ]
         
-        // Convert the payload dictionary to JSON data.
+        print("Payload:", payload)
+        
         guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
             print("Error: Could not serialize data to JSON")
             return
         }
         
-        // Instantiate the API configuration and client.
+        isLoading = true
         let config = ApiConfig()
         let client = RestClient(apiConfig: config)
         
-        // Call the REST client to make the POST request.
-        // The endpoint "/submit" is just an example.
         client.postData(requestBody: jsonData) { result in
-            switch result {
-            case .success(let data):
-                // Convert data to a string, then decode it into a Recipe.
-                if let responseString = String(data: data, encoding: .utf8),
-                   let decodedRecipe = Recipe.decodeRecipe(from: responseString) {
-                    DispatchQueue.main.async {
-                        self.recipe = decodedRecipe
-                        self.showRecipeDetail = true
+            DispatchQueue.main.async {
+                isLoading = false
+                
+                switch result {
+                case .success(let data):
+                    print("Received API response data")
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("Response string:", responseString)
+                        if let recipes = RecipeResponse.decodeRecipes(from: responseString) {
+                            print("Successfully decoded \(recipes.count) recipes")
+                            navigationVM.navigateToRecipeList(recipes)
+                        } else {
+                            print("Failed to decode recipes from response string")
+                        }
+                    } else {
+                        print("Could not convert response data to string")
                     }
-                } else {
-                    print("Error: Failed to convert or decode data.")
+                    
+                case .failure(let error):
+                    print("Error submitting data:", error.localizedDescription)
                 }
-            case .failure(let error):
-                print("Error submitting data: \(error.localizedDescription)")
             }
         }
     }
 }
 
 #Preview {
-    GlobalStyledView {
-        RecipeInputView()
+    NavigationStack {
+        GlobalStyledView {
+            RecipeInputView()
+        }
     }
+
     .modelContainer(for: Item.self, inMemory: true)
+    .environmentObject(NavigationViewModel())
 }
