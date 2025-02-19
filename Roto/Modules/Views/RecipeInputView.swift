@@ -19,10 +19,10 @@ struct RecipeInputView: View {
                 VStack(alignment: .leading, spacing: style.sectionSpacing) {
                     // Base Pantry Ingredients Section
                     VStack(alignment: .leading, spacing: 12) {
-                        AppSectionHeader(title: "BASE PANTRY INGREDIENTS")
+                        AppSectionHeader(title: "YOUR PANTRY INGREDIENTS")
                         
                         AppStyledTextField(
-                            placeholder: "Add Base Ingredient",
+                            placeholder: "Eggs, Ground Beef, etc.",
                             text: $newIngredient,
                             onSubmit: addIngredientToList
                         )
@@ -44,7 +44,7 @@ struct RecipeInputView: View {
                         AppSectionHeader(title: "FOODS TO AVOID")
                         
                         AppStyledTextField(
-                            placeholder: "Add Avoided Food",
+                            placeholder: "Peanuts, Tomatos, Olive, etc.",
                             text: $newDislike,
                             onSubmit: addDislikeToList
                         )
