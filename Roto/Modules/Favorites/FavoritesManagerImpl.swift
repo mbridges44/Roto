@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Observable
-class FavoritesManagerImpl {
+class FavoritesManagerImpl: FavoritesManager {
     private var context: ModelContext
     
     init(context: ModelContext) {
@@ -24,7 +24,7 @@ class FavoritesManagerImpl {
                 context.delete(existing)
             } else {
                 // Add to favorites
-                let favoriteRecipe = FavoriteRecipe(from: recipe)
+                let favoriteRecipe = FavoriteRecipe(from: recipe, favoritedDate: Date())
                 context.insert(favoriteRecipe)
                 print("Inserted favorite: " + favoriteRecipe.name)
             }
@@ -51,11 +51,11 @@ class FavoritesManagerImpl {
         }
     }
     
-    func getAllFavorites() -> [Recipe] {
+    func getAllFavorites() -> [FavoriteRecipe] {
         let descriptor = FetchDescriptor<FavoriteRecipe>()
         do {
             let favoriteRecipes = try context.fetch(descriptor)
-            return favoriteRecipes.map { $0.toRecipe() }
+            return favoriteRecipes
         } catch {
             print("Error fetching favorites: \(error)")
             return []

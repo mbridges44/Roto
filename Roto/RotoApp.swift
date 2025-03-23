@@ -1,38 +1,33 @@
-import SwiftData
 import SwiftUI
+import SwiftData
 
 @main
-struct RotoApp: App {
-    @AppStorage("isFirstLaunch") private var isFirstLaunch = true
-
+struct RecipeAIApp: App {
+    let modelContainer: ModelContainer
     
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-            UserProfile.self,  // Add UserProfile to the schema
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+    init() {
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            modelContainer = try ModelContainer(
+                for: UserProfile.self,
+                FavoriteRecipe.self,
+                SavedIngredient.self,
+                SavedInstruction.self,
+                Recipe.self,
+                RecipeIngredient.self,
+                Instruction.self
+                
+            )
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            fatalError("Could not initialize ModelContainer")
         }
-    }()
-
+    }
+    
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                // Global background color (covers the entire screen)
-                Color("BrandBackground")
-                    .ignoresSafeArea()
-                if isFirstLaunch {
-                    FirstTimeView()
-                } else {
-                    FirstTimeView()  // You'll need to create this view
-                }
+            GlobalStyledView {
+                MainTabView()
             }
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(modelContainer)
     }
 }

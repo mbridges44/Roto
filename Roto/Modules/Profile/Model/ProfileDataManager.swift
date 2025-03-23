@@ -7,7 +7,7 @@
 import SwiftData
 import Foundation
 
-final class ProfileDataManager {
+final class ProfileDataManager : ProfileManager {
     let context: ModelContext
     
     init(context: ModelContext) {

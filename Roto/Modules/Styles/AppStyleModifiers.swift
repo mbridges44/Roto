@@ -103,7 +103,7 @@ struct AppSectionHeader: View {
     @Environment(\.appStyle) private var style
     
     var body: some View {
-        Text(title.uppercased())
+        Text(title)
             .appSectionHeader(style)
     }
 }

@@ -11,6 +11,7 @@ enum RecipeDestination: Hashable {
     case recipeList([Recipe])
     case detail(Recipe)
     
+    
     static func == (lhs: RecipeDestination, rhs: RecipeDestination) -> Bool {
         switch (lhs, rhs) {
         case (.list, .list):
