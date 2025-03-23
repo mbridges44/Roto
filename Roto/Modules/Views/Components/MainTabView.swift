@@ -1,9 +1,3 @@
-//
-//  MainTabView.swift
-//  Roto
-//
-//  Created by Michael Bridges on 2/20/25.
-//
 import SwiftUI
 
 struct MainTabView: View {

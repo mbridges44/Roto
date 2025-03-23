@@ -7,6 +7,13 @@ struct ProfileSetupView: View {
     @Environment(ProfileStateManager.self) private var profileState
     @EnvironmentObject private var navigationVM: NavigationViewModel
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
+    @StateObject private var keyboardObserver = KeyboardObserver()
+    
+    // Track focus state
+    enum Field: Hashable {
+        case baseIngredient, dislike
+    }
+    @FocusState private var focusedField: Field?
     
     @State private var baseIngredients: [String] = []
     @State private var dislikes: [String] = []
@@ -17,101 +24,145 @@ struct ProfileSetupView: View {
     @State private var lastSaved = Date()
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: style.sectionSpacing) {
-                // Base Pantry Ingredients Section
-                VStack(alignment: .leading, spacing: 12) {
-                    AppSectionHeader(title: "Base Pantry Items")
-                    
-                    AppStyledTextField(
-                        placeholder: "Add Item",
-                        text: $newBaseIngredient,
-                        onSubmit: addBaseIngredient
-                    )
-                    
-                    if !baseIngredients.isEmpty {
-                        VStack(spacing: 8) {
-                            ForEach(baseIngredients, id: \.self) { ingredient in
-                                ListItemView(
-                                    text: ingredient,
-                                    onDelete: { deleteIngredient(ingredient) }
-                                )
-                            }
-                        }
-                    }
+        ZStack {
+            // Add a clear view in background that will catch taps
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // This will dismiss the keyboard
+                    focusedField = nil
                 }
-                .padding(.bottom, 8)
-                
-                // Foods to Avoid Section
-                VStack(alignment: .leading, spacing: 12) {
-                    AppSectionHeader(title: "Foods to Avoid")
-                    
-                    AppStyledTextField(
-                        placeholder: "Add Food To Avoid",
-                        text: $newDislike,
-                        onSubmit: addDislike
-                    )
-                    
-                    if !dislikes.isEmpty {
-                        VStack(spacing: 8) {
-                            ForEach(dislikes, id: \.self) { dislike in
-                                ListItemView(
-                                    text: dislike,
-                                    onDelete: { deleteDislike(dislike) }
-                                )
-                            }
-                        }
-                    }
-                }
-                
-                // Dietary Restrictions Section
-                VStack(alignment: .leading, spacing: 12) {
-                    AppSectionHeader(title: "Your Diet")
-                    
-                    ForEach(DietCategoriesEnum.allCases) { category in
-                        Toggle(isOn: Binding(
-                            get: { selectedDietCategories.contains(category) },
-                            set: { isSelected in
-                                if isSelected {
-                                    selectedDietCategories.insert(category)
-                                } else {
-                                    selectedDietCategories.remove(category)
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: style.sectionSpacing) {
+                    // Base Pantry Ingredients Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader(title: "Base Pantry Ingredients")
+                        
+                        HStack(spacing: 8) {
+                            TextField("Add Base Ingredient", text: $newBaseIngredient)
+                                .focused($focusedField, equals: .baseIngredient)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    addBaseIngredient()
                                 }
-                                // Auto-save when toggles change
-                                saveProfile()
+                                .appInputField(style)
+                            
+                            Button(action: addBaseIngredient) {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(style.accentColor)
+                                    .imageScale(.large)
                             }
-                        )) {
-                            Text(category.rawValue)
-                                .foregroundColor(style.primaryColor)
+                            .padding(.trailing, 4)
                         }
-                        .padding(.vertical, 4)
+                        
+                        if !baseIngredients.isEmpty {
+                            VStack(spacing: 8) {
+                                ForEach(baseIngredients, id: \.self) { ingredient in
+                                    ListItemView(
+                                        text: ingredient,
+                                        onDelete: { deleteIngredient(ingredient) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    .padding(.bottom, 8)
+                    
+                    // Foods to Avoid Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader(title: "Foods to Avoid")
+                        
+                        HStack(spacing: 8) {
+                            TextField("Add Food To Avoid", text: $newDislike)
+                                .focused($focusedField, equals: .dislike)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    addDislike()
+                                }
+                                .appInputField(style)
+                            
+                            Button(action: addDislike) {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(style.accentColor)
+                                    .imageScale(.large)
+                            }
+                            .padding(.trailing, 4)
+                        }
+                        
+                        if !dislikes.isEmpty {
+                            VStack(spacing: 8) {
+                                ForEach(dislikes, id: \.self) { dislike in
+                                    ListItemView(
+                                        text: dislike,
+                                        onDelete: { deleteDislike(dislike) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Dietary Restrictions Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader(title: "Dietary Restrictions")
+                        
+                        ForEach(DietCategoriesEnum.allCases) { category in
+                            Toggle(isOn: Binding(
+                                get: { selectedDietCategories.contains(category) },
+                                set: { isSelected in
+                                    if isSelected {
+                                        selectedDietCategories.insert(category)
+                                    } else {
+                                        selectedDietCategories.remove(category)
+                                    }
+                                    // Auto-save when toggles change
+                                    saveProfile()
+                                }
+                            )) {
+                                Text(category.rawValue)
+                                    .foregroundColor(style.primaryColor)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    
+                    // Last saved indicator
+                    HStack {
+                        Spacer()
+                        
+                        if showingSaveSuccess {
+                            Text("Profile saved")
+                                .font(.caption)
+                                .foregroundColor(style.accentColor)
+                                .padding(.top, 8)
+                        }
+                    }
+                    
+                    // If it's first launch, add a "Continue" button at the bottom
+                    if isFirstLaunch {
+                        Spacer(minLength: 32)
+                        
+                        AppStyledButton(title: "Continue to Recipe Creation", action: continueToRecipeCreation)
+                            .padding(.top, 16)
                     }
                 }
+                .padding(24)
+                // Add extra padding for keyboard
+                .padding(.bottom, keyboardObserver.isKeyboardVisible ? keyboardObserver.keyboardHeight - 16 : 0)
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
                 
-                // Last saved indicator
-                HStack {
-                    Spacer()
-                    
-                    if showingSaveSuccess {
-                        Text("Profile saved")
-                            .font(.caption)
-                            .foregroundColor(style.accentColor)
-                            .padding(.top, 8)
-                    }
-                }
-                
-                // If it's first launch, add a "Continue" button at the bottom
-                if isFirstLaunch {
-                    Spacer(minLength: 32)
-                    
-                    AppStyledButton(title: "Let's Start Cooking!", action: continueToRecipeCreation)
-                        .padding(.top, 16)
+                Button("Done") {
+                    focusedField = nil // This dismisses the keyboard
                 }
             }
-            .padding(24)
         }
         .background(style.backgroundColor)
-        .navigationTitle("Profile")
+        .navigationTitle("Your Profile")
         .onAppear {
             // Load existing profile data when view appears
             loadExistingProfile()
