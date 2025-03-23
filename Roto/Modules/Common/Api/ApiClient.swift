@@ -24,6 +24,7 @@ final class APIClient: APIClientProtocol {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONEncoder().encode(body)
+        print("REST Request body: \(body)")
         
         let (data, response) = try await session.data(for: request)
         

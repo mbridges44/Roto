@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct RecipeAIApp: App {
     let modelContainer: ModelContainer
+    @State private var profileStateManager: ProfileStateManager!
     
     init() {
         do {
@@ -15,7 +16,6 @@ struct RecipeAIApp: App {
                 Recipe.self,
                 RecipeIngredient.self,
                 Instruction.self
-                
             )
         } catch {
             fatalError("Could not initialize ModelContainer")
@@ -25,7 +25,18 @@ struct RecipeAIApp: App {
     var body: some Scene {
         WindowGroup {
             GlobalStyledView {
-                MainTabView()
+                if let profileStateManager = profileStateManager {
+                    MainTabView()
+                        .environment(profileStateManager)
+                } else {
+                    // Show loading or placeholder while initializing
+                    ProgressView()
+                        .onAppear {
+                            // Initialize once we have access to the ModelContext
+                            let context = modelContainer.mainContext
+                            profileStateManager = ProfileStateManager(modelContext: context)
+                        }
+                }
             }
         }
         .modelContainer(modelContainer)

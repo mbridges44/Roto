@@ -1,11 +1,10 @@
 import SwiftUI
 import SwiftData
 
-
-
 struct ProfileSetupView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.appStyle) private var style
+    @Environment(ProfileStateManager.self) private var profileState
     @EnvironmentObject private var navigationVM: NavigationViewModel
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
     
@@ -95,7 +94,10 @@ struct ProfileSetupView: View {
         }
         .background(style.backgroundColor)
         .navigationTitle("Your Profile")
-        
+        .onAppear {
+            // Load existing profile data when view appears
+            loadExistingProfile()
+        }
         
         // Success Overlay
         if showingSaveSuccess {
@@ -111,6 +113,15 @@ struct ProfileSetupView: View {
     }
     
     // MARK: - Helper Functions
+    
+    private func loadExistingProfile() {
+        let manager = ProfileDataManager(context: modelContext)
+        if let profile = manager.loadProfile() {
+            baseIngredients = profile.baseIngredients
+            dislikes = profile.dislikes
+            selectedDietCategories = Set(profile.dietCategories)
+        }
+    }
     
     private func addBaseIngredient() {
         guard !newBaseIngredient.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -141,6 +152,9 @@ struct ProfileSetupView: View {
         let manager = ProfileDataManager(context: modelContext)
         manager.saveProfile(profile)
         
+        // Update the shared profile state
+        profileState.refreshProfile()
+        
         withAnimation {
             showingSaveSuccess = true
         }
@@ -154,15 +168,4 @@ struct ProfileSetupView: View {
             }
         }
     }
-}
-
-
-#Preview {
-    NavigationStack {
-        GlobalStyledView {
-            ProfileSetupView()
-        }
-    }
-    .environmentObject(NavigationViewModel())  // Add this line
-    .modelContainer(for: UserProfile.self, inMemory: true)
 }

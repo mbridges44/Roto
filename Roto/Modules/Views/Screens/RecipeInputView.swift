@@ -41,6 +41,7 @@ class RecipeInputViewModel: ObservableObject {
 struct RecipeInputView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.appStyle) private var style
+    @Environment(ProfileStateManager.self) private var profileState
     @EnvironmentObject private var navigationVM: NavigationViewModel
     @StateObject private var viewModel: RecipeInputViewModel
     
@@ -50,17 +51,13 @@ struct RecipeInputView: View {
     }
 
     @State private var ingredients: [String] = []
-    @State private var dislikes: [String] = []
     @State private var newIngredient: String = ""
-    @State private var profileDietCategories: [DietCategoriesEnum] = []
 
     var body: some View {
         VStack(spacing: 0) {
             // Scrollable Content
             ScrollView {
                 VStack(alignment: .leading, spacing: style.sectionSpacing) {
-                  
-                    
                     // Base Pantry Ingredients Section
                     VStack(alignment: .leading, spacing: 12) {
                         AppSectionHeader(title: "Ingredients")
@@ -86,8 +83,16 @@ struct RecipeInputView: View {
                 .padding(24)
             }
             
-            // Fixed Button Section at Bottom
-            VStack {
+            // Fixed Section at Bottom
+            VStack(spacing: 16) {
+                // Request Summary Card
+                RequestPreviewCard(
+                    ingredientsFromProfile: profileState.baseIngredients,
+                    ingredientsFromGenerator: ingredients,
+                    dislikesFromProfile: profileState.dislikes
+                )
+                .padding(.horizontal, 24)
+                
                 if let error = viewModel.error {
                     Text(error)
                         .foregroundColor(.red)
@@ -95,6 +100,8 @@ struct RecipeInputView: View {
                 }
                 
                 Divider()
+                
+                // Generate Button
                 Button(action: submitData) {
                     HStack {
                         if viewModel.isLoading {
@@ -115,27 +122,15 @@ struct RecipeInputView: View {
                 }
                 .disabled(viewModel.isLoading)
                 .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.bottom, 16)
             }
             .background(style.backgroundColor)
         }
         .background(style.backgroundColor)
         .navigationTitle("Recipe Generator")
-        .onAppear {loadProfilePreferences()}
     }
         
-    
     // MARK: - List Management
-    
-    
-    private func loadProfilePreferences() {
-        let profileManager = ProfileDataManager(context: modelContext)
-        if let profile = profileManager.loadProfile() {
-            ingredients = profile.baseIngredients
-            dislikes = profile.dislikes
-            profileDietCategories = profile.dietCategories
-        }
-    }
     
     private func addIngredientToList() {
         addToListAndClear(list: &ingredients, item: &newIngredient)
@@ -153,173 +148,21 @@ struct RecipeInputView: View {
     
     // MARK: - Submission Logic
     private func submitData() {
-        guard !ingredients.isEmpty else {
+        guard !ingredients.isEmpty || !profileState.baseIngredients.isEmpty else {
             viewModel.error = "Please add at least one ingredient"
             return
         }
         
+        // Combine current ingredients with profile ingredients
+        let allIngredients = ingredients + profileState.baseIngredients
+        
         Task {
             if let recipes = await viewModel.generateRecipes(
-                ingredients: ingredients,
-                dislikes: dislikes
+                ingredients: allIngredients,
+                dislikes: profileState.dislikes
             ) {
                 navigationVM.navigateToRecipeList(recipes)
             }
         }
     }
-}
-
-//MARK: - UI Component
-struct RequestPreviewCard: View {
-    @Environment(\.appStyle) private var style
-    
-    @State private var ingredientsFromProfile: [String]
-    @State private var ingredientsFromGenerator: [String]
-    @State private var dislikesFromProfile: [String]
-
-    
-    init(ingredientsFromProfile: [String] = [], ingredientsFromGenerator: [String] = [],
-         dislikesFromProfile: [String] = [],  dislikesFromGenerator: [String] = []) {
-        self.ingredientsFromProfile = ingredientsFromProfile;
-        self.ingredientsFromGenerator = ingredientsFromGenerator;
-        self.dislikesFromProfile = dislikesFromProfile;
-    }
-    
-    
-    private var allIngredients: [String] {
-           Array(Set(ingredientsFromProfile + ingredientsFromGenerator))
-       }
-       
-       private var allDislikes: [String] {
-           Array(Set(dislikesFromProfile))
-       }
-       
-       var body: some View {
-           VStack(alignment: .leading, spacing: 12) {
-               // Title
-               Text("Ingredients Preview")
-                   .font(.headline)
-                   .foregroundColor(style.primaryColor)
-               
-               // Ingredients Section
-               if !allIngredients.isEmpty {
-                   VStack(alignment: .leading, spacing: 8) {
-                       Text("INGREDIENTS")
-                           .font(.caption)
-                           .foregroundColor(style.primaryColor.opacity(0.7))
-                       
-                       FlowLayout(items: allIngredients) { ingredient in
-                           Text(ingredient)
-                               .font(.caption)
-                               .padding(.horizontal, 8)
-                               .padding(.vertical, 4)
-                               .background(style.primaryColor.opacity(0.1))
-                               .foregroundColor(style.primaryColor)
-                               .cornerRadius(12)
-                       }
-                   }
-               }
-               
-               // Divider for separation
-               if !allIngredients.isEmpty && !allDislikes.isEmpty {
-                   Divider()
-                       .padding(.vertical, 4)
-               }
-               
-               
-               // Empty state message
-               if allIngredients.isEmpty && allDislikes.isEmpty {
-                   HStack {
-                       Spacer()
-                       Text("Add ingredients to get started")
-                           .font(.subheadline)
-                           .foregroundColor(style.primaryColor.opacity(0.5))
-                           .padding(.vertical, 12)
-                       Spacer()
-                   }
-               }
-           }
-           .padding(16)
-           .background(Color.white)
-           .cornerRadius(16)
-           .shadow(
-               color: Color.black.opacity(0.05),
-               radius: 10,
-               x: 0,
-               y: 4
-           )
-       }
-   }
-
-   
-   // Preview provider
-   struct RequestPreviewCard_Previews: PreviewProvider {
-       static var previews: some View {
-           VStack {
-               // Empty state
-               RequestPreviewCard()
-                   .padding()
-               
-               // With data
-               RequestPreviewCard(
-                   ingredientsFromProfile: ["Eggs", "Milk", "Flour"],
-                   ingredientsFromGenerator: ["Chicken", "Onions", "Garlic"],
-                   dislikesFromProfile: ["Nuts", "Shellfish"]
-               )
-               .padding()
-           }
-           .background(Color("BrandBackground"))
-       }
-   }
-
-
-// MARK: - Preview
-
-// MARK: - Mock Recipe Service
-class MockRecipeService: RecipeServiceProtocol {
-    var shouldSimulateError = false
-    var delayInSeconds: Double = 1.0
-    
-    func generateRecipes(ingredients: [String], dislikes: [String]) async throws -> [Recipe] {
-        // Simulate network delay
-        try await Task.sleep(nanoseconds: UInt64(delayInSeconds * 1_000_000_000))
-        
-        if shouldSimulateError {
-            throw NetworkError.serverError(500)
-        }
-        
-        return Recipe.mockRecipes
-    }
-}
-
-// MARK: - Preview Helper
-extension RecipeInputView {
-    static func preview(shouldSimulateError: Bool = false, delay: Double = 1.0) -> some View {
-        let mockService = MockRecipeService()
-        mockService.shouldSimulateError = shouldSimulateError
-        mockService.delayInSeconds = delay
-        
-        let viewModel = RecipeInputViewModel(recipeService: mockService)
-        
-        return NavigationStack {
-            GlobalStyledView {
-                RecipeInputView()
-                    .environmentObject(NavigationViewModel())
-                    .modelContainer(for: Item.self, inMemory: true)
-            }
-        }
-    }
-}
-
-// MARK: - Preview Examples
-#Preview("Normal State") {
-    RecipeInputView.preview()
-}
-
-#Preview("Error State") {
-    RecipeInputView.preview(shouldSimulateError: true)
-}
-
-#Preview("Quick Response") {
-    RecipeInputView.preview(delay: 0.1)
 }
