@@ -39,91 +39,6 @@ class RecipeInputViewModel: ObservableObject {
     }
 }
 
-
-// MARK: - IngredientsSection with Keyboard Focus
-private struct IngredientsSection: View {
-    @Binding var ingredients: [String]
-    @Binding var newIngredient: String
-    @FocusState.Binding var focusedField: RecipeInputView.Field?
-    let style: AppStyleConfig
-    let onAddIngredient: () -> Void
-    let onDeleteIngredient: (String) -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            AppSectionHeader(title: "Ingredients")
-            
-            HStack(spacing: 8) {
-                TextField("Eggs, Ground Beef, etc.", text: $newIngredient)
-                    .focused($focusedField, equals: .ingredient)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        onAddIngredient()
-                    }
-                    .appInputField(style)
-                
-                Button(action: {
-                    onAddIngredient()
-                }) {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(style.accentColor)
-                        .imageScale(.large)
-                }
-                .padding(.trailing, 4)
-            }
-            
-            if !ingredients.isEmpty {
-                VStack(spacing: 8) {
-                    ForEach(ingredients, id: \.self) { ingredient in
-                        ListItemView(
-                            text: ingredient,
-                            onDelete: { onDeleteIngredient(ingredient) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - NotesSection with Keyboard Focus
-private struct NotesSection: View {
-    @Binding var notes: String
-    @FocusState.Binding var focusedField: RecipeInputView.Field?
-    let maxNotesLength: Int
-    let style: AppStyleConfig
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            AppSectionHeader(title: "Special Requests")
-            
-            TextField("\"Only slow cooker recipes\" or \"Light meals perfect for spring\"", text: $notes, axis: .vertical)
-                .focused($focusedField, equals: .notes)
-                .submitLabel(.done)
-                .lineLimit(3)
-                .onChange(of: notes) { _, newValue in
-                    if newValue.count > maxNotesLength {
-                        notes = String(newValue.prefix(maxNotesLength))
-                    }
-                }
-                .appInputField(style)
-            
-            HStack {
-                Spacer()
-                Text("\(notes.count)/\(maxNotesLength)")
-                    .font(.caption)
-                    .foregroundColor(
-                        notes.count > Int(Double(maxNotesLength) * 0.8) ?
-                            (notes.count > maxNotesLength ? .red : .orange) :
-                            style.primaryColor.opacity(0.5)
-                    )
-            }
-        }
-    }
-}
-
-// MARK: - RecipeInputView with Keyboard Management
-
 struct RecipeInputView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.appStyle) private var style
@@ -148,130 +63,138 @@ struct RecipeInputView: View {
     private let maxNotesLength = 300
 
     var body: some View {
-        ZStack {
-            // Add a clear view in background that will catch taps
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // This will dismiss the keyboard
-                    focusedField = nil
-                }
-                .ignoresSafeArea()
-            
-            // Main content
-            VStack(spacing: 0) {
-                // Scrollable Content
-                ScrollView {
-                    VStack(alignment: .leading, spacing: style.sectionSpacing) {
-                        // Ingredients Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            AppSectionHeader(title: "Ingredients")
-                            
-                            HStack(spacing: 8) {
-                                TextField("Eggs, Ground Beef, etc.", text: $newIngredient)
-                                    .focused($focusedField, equals: .ingredient)
-                                    .submitLabel(.done)
-                                    .onSubmit {
-                                        addIngredientToList()
-                                    }
-                                    .appInputField(style)
-                                
-                                Button(action: addIngredientToList) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(style.accentColor)
-                                        .imageScale(.large)
-                                }
-                                .padding(.trailing, 4)
-                            }
-                            
-                            if !ingredients.isEmpty {
-                                VStack(spacing: 8) {
-                                    ForEach(ingredients, id: \.self) { ingredient in
-                                        ListItemView(
-                                            text: ingredient,
-                                            onDelete: { deleteIngredient(ingredient) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+        // Main content area with scrollable content
+        VStack(spacing: 0) {
+            // Scrollable Content
+            ScrollView {
+                VStack(alignment: .leading, spacing: style.sectionSpacing) {
+                    // Ingredients Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader(title: "Ingredients")
                         
-                        // Notes Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            AppSectionHeader(title: "Special Requests")
-                            
-                            TextField("\"Only slow cooker recipes\" or \"Light meals perfect for spring\"", text: $notes, axis: .vertical)
-                                .focused($focusedField, equals: .notes)
+                        HStack(spacing: 8) {
+                            TextField("Eggs, Ground Beef, etc.", text: $newIngredient)
+                                .focused($focusedField, equals: .ingredient)
                                 .submitLabel(.done)
-                                .lineLimit(3)
-                                .onChange(of: notes) { _, newValue in
-                                    if newValue.count > maxNotesLength {
-                                        notes = String(newValue.prefix(maxNotesLength))
-                                    }
+                                .onSubmit {
+                                    addIngredientToList()
                                 }
                                 .appInputField(style)
                             
-                            HStack {
-                                Spacer()
-                                Text("\(notes.count)/\(maxNotesLength)")
-                                    .font(.caption)
-                                    .foregroundColor(
-                                        notes.count > Int(Double(maxNotesLength) * 0.8) ?
-                                            (notes.count > maxNotesLength ? .red : .orange) :
-                                            style.primaryColor.opacity(0.5)
+                            Button(action: addIngredientToList) {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(style.accentColor)
+                                    .imageScale(.large)
+                            }
+                            .padding(.trailing, 4)
+                        }
+                        
+                        if !ingredients.isEmpty {
+                            VStack(spacing: 8) {
+                                ForEach(ingredients, id: \.self) { ingredient in
+                                    ListItemView(
+                                        text: ingredient,
+                                        onDelete: { deleteIngredient(ingredient) }
                                     )
+                                }
                             }
                         }
-                        
-                        // Request Summary Card
-                        RequestPreviewCard(
-                            ingredientsFromProfile: profileState.baseIngredients,
-                            ingredientsFromGenerator: ingredients,
-                            dislikesFromProfile: profileState.dislikes,
-                            notes: notes
-                        )
-                        .padding(.vertical, 16)
-                        
-                        if let error = viewModel.error {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .padding(.horizontal)
-                        }
-                        
-                        // Add some space at the bottom for better scrolling experience
-                        Spacer()
-                            .frame(height: 16)
                     }
-                    .padding(24)
-                }
-                
-                Divider()
-                
-                // Generate Button - remains fixed at the bottom
-                Button(action: submitData) {
-                    HStack {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(0.8)
-                        } else {
-                            Text("Generate Recipe")
-                                .font(.system(size: 16, weight: .semibold))
-                            Image(systemName: "wand.and.stars")
+                    
+                    // Notes Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader(title: "Special Requests")
+                        
+                        TextField("\"Only slow cooker recipes\" or \"Light meals perfect for spring\"", text: $notes, axis: .vertical)
+                            .focused($focusedField, equals: .notes)
+                            .submitLabel(.done)
+                            .lineLimit(3)
+                            .onChange(of: notes) { _, newValue in
+                                if newValue.count > maxNotesLength {
+                                    notes = String(newValue.prefix(maxNotesLength))
+                                }
+                            }
+                            .appInputField(style)
+                        
+                        HStack {
+                            Spacer()
+                            Text("\(notes.count)/\(maxNotesLength)")
+                                .font(.caption)
+                                .foregroundColor(
+                                    notes.count > Int(Double(maxNotesLength) * 0.8) ?
+                                        (notes.count > maxNotesLength ? .red : .orange) :
+                                        style.primaryColor.opacity(0.5)
+                                )
                         }
                     }
-                    .frame(maxWidth: .infinity)
+                    
+                    // Request Summary Card
+                    RequestPreviewCard(
+                        ingredientsFromProfile: profileState.baseIngredients,
+                        ingredientsFromGenerator: ingredients,
+                        dislikesFromProfile: profileState.dislikes,
+                        notes: notes
+                    )
                     .padding(.vertical, 16)
-                    .background(viewModel.isLoading ? style.primaryColor.opacity(0.7) : style.primaryColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                    
+                    if let error = viewModel.error {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding(.horizontal)
+                    }
+                    
+                    // Add extra space at the bottom to ensure all content is visible
+                    // when the generate button shows above the keyboard
+                    Spacer()
+                        .frame(height: keyboardObserver.isKeyboardVisible ? keyboardObserver.keyboardHeight + 16 : 16)
+                    
+                    
+                    // Bottom button container that stays at the bottom
+                    VStack(spacing: 0) {
+                        Divider()
+                        
+                        // Generate Button - fixed at the bottom
+                        Button(action: submitData) {
+                            HStack {
+                                if viewModel.isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Text("Generate Recipe")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Image(systemName: "wand.and.stars")
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(viewModel.isLoading ? style.primaryColor.opacity(0.7) : style.primaryColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .disabled(viewModel.isLoading)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                    }
+                    .background(style.backgroundColor)
+                    // Use padding based on keyboard presence
+                    .padding(.bottom, keyboardObserver.isKeyboardVisible ? keyboardObserver.keyboardHeight - 16 : 0)
                 }
-                .disabled(viewModel.isLoading)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
-                // Add extra padding for keyboard
-                .padding(.bottom, keyboardObserver.isKeyboardVisible ? keyboardObserver.keyboardHeight - 16 : 0)
+                .padding(24)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    focusedField = nil
+                }
             }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 10)
+                    .onChanged { _ in
+                        focusedField = nil
+                    }
+            )
+            
+            Spacer(minLength: 0)
+            
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {

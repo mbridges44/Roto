@@ -152,15 +152,6 @@ struct ProfileSetupView: View {
                 .padding(.bottom, keyboardObserver.isKeyboardVisible ? keyboardObserver.keyboardHeight - 16 : 0)
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                
-                Button("Done") {
-                    focusedField = nil // This dismisses the keyboard
-                }
-            }
-        }
         .background(style.backgroundColor)
         .navigationTitle("Your Profile")
         .onAppear {
