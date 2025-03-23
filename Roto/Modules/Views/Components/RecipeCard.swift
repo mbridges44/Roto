@@ -95,7 +95,7 @@ struct RecipeCard: View {
                         Image(systemName: "heart.fill")
                             .foregroundColor(style.accentColor)
                             .imageScale(.small)
-                        Text("Favorited \(dateFormatter.string(from: favoriteDate))")
+                        Text("Saved \(dateFormatter.string(from: favoriteDate))")
                             .font(.caption)
                             .foregroundColor(style.primaryColor.opacity(0.7))
                     }

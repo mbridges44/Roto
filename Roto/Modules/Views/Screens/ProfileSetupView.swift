@@ -21,10 +21,10 @@ struct ProfileSetupView: View {
             VStack(alignment: .leading, spacing: style.sectionSpacing) {
                 // Base Pantry Ingredients Section
                 VStack(alignment: .leading, spacing: 12) {
-                    AppSectionHeader(title: "Base Pantry Ingredients")
+                    AppSectionHeader(title: "Base Pantry Items")
                     
                     AppStyledTextField(
-                        placeholder: "Add Base Ingredient",
+                        placeholder: "Add Item",
                         text: $newBaseIngredient,
                         onSubmit: addBaseIngredient
                     )
@@ -66,7 +66,7 @@ struct ProfileSetupView: View {
                 
                 // Dietary Restrictions Section
                 VStack(alignment: .leading, spacing: 12) {
-                    AppSectionHeader(title: "Dietary Restrictions")
+                    AppSectionHeader(title: "Your Diet")
                     
                     ForEach(DietCategoriesEnum.allCases) { category in
                         Toggle(isOn: Binding(
@@ -104,14 +104,14 @@ struct ProfileSetupView: View {
                 if isFirstLaunch {
                     Spacer(minLength: 32)
                     
-                    AppStyledButton(title: "Continue to Recipe Creation", action: continueToRecipeCreation)
+                    AppStyledButton(title: "Let's Start Cooking!", action: continueToRecipeCreation)
                         .padding(.top, 16)
                 }
             }
             .padding(24)
         }
         .background(style.backgroundColor)
-        .navigationTitle("Your Profile")
+        .navigationTitle("Profile")
         .onAppear {
             // Load existing profile data when view appears
             loadExistingProfile()

@@ -53,7 +53,7 @@ private struct IngredientsSection: View {
             AppSectionHeader(title: "Ingredients")
             
             AppStyledTextField(
-                placeholder: "Eggs, Ground Beef, etc.",
+                placeholder: "Eggs, Chicken Breast, BBQ Sauce, etc.",
                 text: $newIngredient,
                 onSubmit: onAddIngredient
             )
@@ -80,7 +80,7 @@ private struct NotesSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            AppSectionHeader(title: "Special Requests")
+            AppSectionHeader(title: "Any Requests?")
             
             TextField("\"Only slow cooker recipes\" or \"Light meals perfect for spring\"", text: $notes, axis: .vertical)
                 .lineLimit(1)
@@ -176,7 +176,7 @@ struct RecipeInputView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(0.8)
                     } else {
-                        Text("Generate Recipe")
+                        Text("Generate Recipes")
                             .font(.system(size: 16, weight: .semibold))
                         Image(systemName: "wand.and.stars")
                     }

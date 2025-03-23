@@ -23,7 +23,7 @@ struct RequestPreviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Title
-            Text("Request Summary")
+            Text("Your Recipe Request")
                 .font(.headline)
                 .foregroundColor(style.primaryColor)
             
@@ -58,7 +58,7 @@ struct RequestPreviewCard: View {
                     Divider()
                         .padding(.vertical, 4)
                     
-                    Text("FROM YOUR PROFILE")
+                    Text("From Your Profile")
                         .font(.caption)
                         .foregroundColor(style.primaryColor.opacity(0.7))
                     

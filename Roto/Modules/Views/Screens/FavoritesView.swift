@@ -18,7 +18,7 @@ struct FavoritesView: View {
                 style: style,
                 navigationVM: navigationVM
             )
-            .navigationTitle("Favorites")
+            .navigationTitle("Saved Recipes")
             .navigationDestination(for: AppDestination.self) { destination in
                 NavigationRouter(destination: destination)
             }
@@ -62,11 +62,11 @@ private struct EmptyStateView: View {
                 .font(.system(size: 48))
                 .foregroundColor(style.primaryColor.opacity(0.3))
             
-            Text("No Favorite Recipes Yet")
+            Text("Nothing Saved Yet")
                 .font(.headline)
                 .foregroundColor(style.primaryColor)
             
-            Text("Your favorite recipes will appear here")
+            Text("Here you can find recipes you've saved")
                 .font(.subheadline)
                 .foregroundColor(style.primaryColor.opacity(0.7))
                 .multilineTextAlignment(.center)

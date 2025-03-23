@@ -15,7 +15,7 @@ struct FirstTimeView: View {
                     .padding(.top, 90)
                     .foregroundColor(style.primaryColor)
                 
-                Text("Personalized recipes based on your pantry, preferences, and restrictions.")
+                Text("Make with what you have.")
                     .font(.body)
                     .multilineTextAlignment(.center)
                     .padding(.bottom, 30)
@@ -30,7 +30,7 @@ struct FirstTimeView: View {
                     } label: {
                         OptionCard(
                             title: "Profile Setup",
-                            description: "Set up dietary restrictions and more",
+                            description: "Set up some base ingredients and dietary restrictions",
                             systemImage: "person.circle.fill",
                             tintColor: style.primaryColor
                         )
@@ -42,8 +42,8 @@ struct FirstTimeView: View {
                         navigationVM.navigateToRecipeCreate()
                     } label: {
                         OptionCard(
-                            title: "Quick Create Recipe",
-                            description: "Start creating recipes now",
+                            title: "Create Recipe",
+                            description: "Start creating recipes",
                             systemImage: "fork.knife.circle.fill",
                             tintColor: style.accentColor
                         )
