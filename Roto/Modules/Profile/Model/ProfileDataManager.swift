@@ -1,9 +1,5 @@
-//
-//  ProfileDataManager.swift
-//  Roto
-//
-//  Created by Michael Bridges on 2/17/25.
-//
+// Fix for ProfileDataManager.swift
+
 import SwiftData
 import Foundation
 
@@ -15,6 +11,10 @@ final class ProfileDataManager : ProfileManager {
     }
     
     func saveProfile(_ profile: UserProfile) {
+        // First, remove any existing profiles
+        clearExistingProfiles()
+        
+        // Then insert the new profile
         context.insert(profile)
         do {
             try context.save()
@@ -27,10 +27,32 @@ final class ProfileDataManager : ProfileManager {
     func loadProfile() -> UserProfile? {
         // Example fetch: assume there is only one profile.
         let fetchDescriptor = FetchDescriptor<UserProfile>(predicate: nil)
-        if let profiles = try? context.fetch(fetchDescriptor), !profiles.isEmpty {
-            return profiles.first
+        do {
+            let profiles = try context.fetch(fetchDescriptor)
+            if !profiles.isEmpty {
+                print("ProfileDataManager - Found \(profiles.count) profiles, returning first")
+                return profiles.first
+            } else {
+                print("ProfileDataManager - No profiles found")
+            }
+        } catch {
+            print("ProfileDataManager - Error fetching profiles: \(error)")
         }
         return nil
     }
+    
+    private func clearExistingProfiles() {
+        let fetchDescriptor = FetchDescriptor<UserProfile>(predicate: nil)
+        do {
+            let existingProfiles = try context.fetch(fetchDescriptor)
+            for profile in existingProfiles {
+                context.delete(profile)
+            }
+            if !existingProfiles.isEmpty {
+                print("Deleted \(existingProfiles.count) existing profiles")
+            }
+        } catch {
+            print("Error clearing existing profiles: \(error)")
+        }
+    }
 }
-

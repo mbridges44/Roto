@@ -1,3 +1,5 @@
+// Fix for ProfileSetupView.swift
+
 import SwiftUI
 import SwiftData
 
@@ -115,10 +117,19 @@ struct ProfileSetupView: View {
     // MARK: - Helper Functions
     
     private func loadExistingProfile() {
+        // First try to get from profile state manager
+        if !profileState.baseIngredients.isEmpty || !profileState.dislikes.isEmpty || !profileState.dietCategories.isEmpty {
+            baseIngredients = profileState.baseIngredients
+            dislikes = profileState.dislikes
+            selectedDietCategories = Set(profileState.dietCategories)
+            return
+        }
+        
+        // Otherwise try to load from database
         let manager = ProfileDataManager(context: modelContext)
         if let profile = manager.loadProfile() {
-            baseIngredients = profile.baseIngredients
-            dislikes = profile.dislikes
+            baseIngredients = profile.baseIngredients.filter { !$0.isEmpty }
+            dislikes = profile.dislikes.filter { !$0.isEmpty }
             selectedDietCategories = Set(profile.dietCategories)
         }
     }
@@ -144,16 +155,28 @@ struct ProfileSetupView: View {
     }
     
     private func saveProfileAndNavigate() {
+        // Clear any existing profile first
+        let fetchDescriptor = FetchDescriptor<UserProfile>(predicate: nil)
+        if let existingProfiles = try? modelContext.fetch(fetchDescriptor) {
+            for profile in existingProfiles {
+                modelContext.delete(profile)
+            }
+        }
+        
+        // Create and save new profile
         let profile = UserProfile(
-            baseIngredients: baseIngredients,
-            dislikes: dislikes,
+            baseIngredients: baseIngredients.filter { !$0.isEmpty },
+            dislikes: dislikes.filter { !$0.isEmpty },
             dietCategories: Array(selectedDietCategories)
         )
-        let manager = ProfileDataManager(context: modelContext)
-        manager.saveProfile(profile)
+        
+        modelContext.insert(profile)
+        try? modelContext.save()
         
         // Update the shared profile state
-        profileState.refreshProfile()
+        profileState.baseIngredients = baseIngredients.filter { !$0.isEmpty }
+        profileState.dislikes = dislikes.filter { !$0.isEmpty }
+        profileState.dietCategories = Array(selectedDietCategories)
         
         withAnimation {
             showingSaveSuccess = true

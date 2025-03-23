@@ -1,3 +1,5 @@
+// Fix for UserProfile.swift
+
 import SwiftData
 import Foundation
 
@@ -21,11 +23,16 @@ final class UserProfile: Identifiable {
     // Array handling with comma escaping
     var baseIngredients: [String] {
         get {
-            baseIngredientsString.split(separator: ",", omittingEmptySubsequences: false)
-                .map { unescapeCommas(String($0)) }
+            // Skip empty strings that might occur from splitting
+            return baseIngredientsString.isEmpty ? [] :
+                baseIngredientsString.split(separator: ",", omittingEmptySubsequences: true)
+                    .map { unescapeCommas(String($0)) }
+                    .filter { !$0.isEmpty }
         }
         set {
+            // Filter out empty strings before joining
             baseIngredientsString = newValue
+                .filter { !$0.isEmpty }
                 .map { escapeCommas($0) }
                 .joined(separator: ",")
         }
@@ -33,11 +40,16 @@ final class UserProfile: Identifiable {
     
     var dislikes: [String] {
         get {
-            dislikesString.split(separator: ",", omittingEmptySubsequences: false)
-                .map { unescapeCommas(String($0)) }
+            // Skip empty strings that might occur from splitting
+            return dislikesString.isEmpty ? [] :
+                dislikesString.split(separator: ",", omittingEmptySubsequences: true)
+                    .map { unescapeCommas(String($0)) }
+                    .filter { !$0.isEmpty }
         }
         set {
+            // Filter out empty strings before joining
             dislikesString = newValue
+                .filter { !$0.isEmpty }
                 .map { escapeCommas($0) }
                 .joined(separator: ",")
         }
@@ -45,8 +57,9 @@ final class UserProfile: Identifiable {
     
     var dietCategories: [DietCategoriesEnum] {
         get {
-            dietCategoriesString.split(separator: ",")
-                .compactMap { DietCategoriesEnum(rawValue: String($0)) }
+            dietCategoriesString.isEmpty ? [] :
+                dietCategoriesString.split(separator: ",")
+                    .compactMap { DietCategoriesEnum(rawValue: String($0)) }
         }
         set {
             dietCategoriesString = newValue
@@ -56,12 +69,17 @@ final class UserProfile: Identifiable {
     }
     
     init(baseIngredients: [String] = [], dislikes: [String] = [], dietCategories: [DietCategoriesEnum] = []) {
+        // Filter out any empty strings before storing
         self.baseIngredientsString = baseIngredients
+            .filter { !$0.isEmpty }
             .map { $0.replacingOccurrences(of: ",", with: "\\,") }
             .joined(separator: ",")
+        
         self.dislikesString = dislikes
+            .filter { !$0.isEmpty }
             .map { $0.replacingOccurrences(of: ",", with: "\\,") }
             .joined(separator: ",")
+        
         self.dietCategoriesString = dietCategories
             .map { $0.rawValue }
             .joined(separator: ",")
