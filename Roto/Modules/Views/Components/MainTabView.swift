@@ -32,10 +32,10 @@ struct MainTabView: View {
                 // Favorites Tab
                 NavigationStack {
                     FavoritesView(favoritesManager: FavoritesManagerImpl(context:modelContext))
-                        .navigationTitle("Favorites View")
+                        .navigationTitle("Saved Recipes")
                 }
                 .tabItem {
-                    Label("Favorites", systemImage: "heart.fill")
+                    Label("Saved", systemImage: "heart.fill")
                 }
 
                 // Profile Tab

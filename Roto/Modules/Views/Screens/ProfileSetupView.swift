@@ -1,5 +1,3 @@
-// Fix for ProfileSetupView.swift
-
 import SwiftUI
 import SwiftData
 
@@ -16,6 +14,7 @@ struct ProfileSetupView: View {
     @State private var newDislike: String = ""
     @State private var selectedDietCategories: Set<DietCategoriesEnum> = []
     @State private var showingSaveSuccess = false
+    @State private var lastSaved = Date()
     
     var body: some View {
         ScrollView {
@@ -78,6 +77,8 @@ struct ProfileSetupView: View {
                                 } else {
                                     selectedDietCategories.remove(category)
                                 }
+                                // Auto-save when toggles change
+                                saveProfile()
                             }
                         )) {
                             Text(category.rawValue)
@@ -87,10 +88,25 @@ struct ProfileSetupView: View {
                     }
                 }
                 
-                Spacer(minLength: 32)
+                // Last saved indicator
+                HStack {
+                    Spacer()
+                    
+                    if showingSaveSuccess {
+                        Text("Profile saved")
+                            .font(.caption)
+                            .foregroundColor(style.accentColor)
+                            .padding(.top, 8)
+                    }
+                }
                 
-                // Save Button
-                AppStyledButton(title: "Save Profile", action: saveProfileAndNavigate)
+                // If it's first launch, add a "Continue" button at the bottom
+                if isFirstLaunch {
+                    Spacer(minLength: 32)
+                    
+                    AppStyledButton(title: "Continue to Recipe Creation", action: continueToRecipeCreation)
+                        .padding(.top, 16)
+                }
             }
             .padding(24)
         }
@@ -100,17 +116,10 @@ struct ProfileSetupView: View {
             // Load existing profile data when view appears
             loadExistingProfile()
         }
-        
-        // Success Overlay
-        if showingSaveSuccess {
-            SuccessOverlay(message: "Profile Saved!") {
-                withAnimation {
-                    showingSaveSuccess = false
-                    isFirstLaunch = false
-                    navigationVM.navigateToRecipeCreate()
-                }
+        .onChange(of: isFirstLaunch) { _ in
+            if isFirstLaunch == false {
+                saveProfile()
             }
-            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
     
@@ -138,23 +147,35 @@ struct ProfileSetupView: View {
         guard !newBaseIngredient.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         baseIngredients.append(newBaseIngredient.trimmingCharacters(in: .whitespacesAndNewlines))
         newBaseIngredient = ""
+        
+        // Auto-save when ingredient is added
+        saveProfile()
     }
     
     private func deleteIngredient(_ ingredient: String) {
         baseIngredients.removeAll { $0 == ingredient }
+        
+        // Auto-save when ingredient is deleted
+        saveProfile()
     }
     
     private func addDislike() {
         guard !newDislike.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         dislikes.append(newDislike.trimmingCharacters(in: .whitespacesAndNewlines))
         newDislike = ""
+        
+        // Auto-save when dislike is added
+        saveProfile()
     }
     
     private func deleteDislike(_ dislike: String) {
         dislikes.removeAll { $0 == dislike }
+        
+        // Auto-save when dislike is deleted
+        saveProfile()
     }
     
-    private func saveProfileAndNavigate() {
+    private func saveProfile() {
         // Clear any existing profile first
         let fetchDescriptor = FetchDescriptor<UserProfile>(predicate: nil)
         if let existingProfiles = try? modelContext.fetch(fetchDescriptor) {
@@ -178,17 +199,26 @@ struct ProfileSetupView: View {
         profileState.dislikes = dislikes.filter { !$0.isEmpty }
         profileState.dietCategories = Array(selectedDietCategories)
         
+        // Show saved indicator briefly
         withAnimation {
             showingSaveSuccess = true
         }
+        lastSaved = Date()
         
-        // Auto-dismiss after 2 seconds
+        // Hide indicator after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation {
-                showingSaveSuccess = false
-                isFirstLaunch = false
-                navigationVM.navigateToRecipeCreate()
+            if Date().timeIntervalSince(self.lastSaved) >= 2 {
+                withAnimation {
+                    self.showingSaveSuccess = false
+                }
             }
         }
+    }
+    
+    private func continueToRecipeCreation() {
+        // Save one final time to ensure everything is saved
+        saveProfile()
+        isFirstLaunch = false
+        navigationVM.navigateToRecipeCreate()
     }
 }
