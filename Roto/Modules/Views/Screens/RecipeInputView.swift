@@ -83,9 +83,6 @@ struct RecipeInputView: View {
                             }
                         }
                     }
-
-                    RequestPreviewCard(ingredientsFromProfile: [], ingredientsFromGenerator: ingredients, dislikesFromProfile: [], dislikesFromGenerator: dislikes)
-                    
                 }
                 .padding(24)
             }
@@ -188,7 +185,6 @@ struct RequestPreviewCard: View {
     @State private var ingredientsFromProfile: [String]
     @State private var ingredientsFromGenerator: [String]
     @State private var dislikesFromProfile: [String]
-    @State private var dislikesFromGenerator: [String]
 
     
     init(ingredientsFromProfile: [String] = [], ingredientsFromGenerator: [String] = [],
@@ -196,7 +192,6 @@ struct RequestPreviewCard: View {
         self.ingredientsFromProfile = ingredientsFromProfile;
         self.ingredientsFromGenerator = ingredientsFromGenerator;
         self.dislikesFromProfile = dislikesFromProfile;
-        self.dislikesFromGenerator = dislikesFromGenerator;
     }
     
     
@@ -205,7 +200,7 @@ struct RequestPreviewCard: View {
        }
        
        private var allDislikes: [String] {
-           Array(Set(dislikesFromProfile + dislikesFromGenerator))
+           Array(Set(dislikesFromProfile))
        }
        
        var body: some View {
@@ -240,24 +235,6 @@ struct RequestPreviewCard: View {
                        .padding(.vertical, 4)
                }
                
-               // Dislikes Section
-               if !allDislikes.isEmpty {
-                   VStack(alignment: .leading, spacing: 8) {
-                       Text("DISLIKES")
-                           .font(.caption)
-                           .foregroundColor(style.primaryColor.opacity(0.7))
-                       
-                       FlowLayout(items: allDislikes) { dislike in
-                           Text(dislike)
-                               .font(.caption)
-                               .padding(.horizontal, 8)
-                               .padding(.vertical, 4)
-                               .background(style.accentColor.opacity(0.1))
-                               .foregroundColor(style.accentColor)
-                               .cornerRadius(12)
-                       }
-                   }
-               }
                
                // Empty state message
                if allIngredients.isEmpty && allDislikes.isEmpty {
