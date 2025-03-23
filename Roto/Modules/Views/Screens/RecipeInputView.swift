@@ -52,7 +52,6 @@ struct RecipeInputView: View {
     @State private var ingredients: [String] = []
     @State private var dislikes: [String] = []
     @State private var newIngredient: String = ""
-    @State private var newDislike: String = ""
     @State private var profileDietCategories: [DietCategoriesEnum] = []
 
     var body: some View {
@@ -142,10 +141,6 @@ struct RecipeInputView: View {
         addToListAndClear(list: &ingredients, item: &newIngredient)
     }
     
-    private func addDislikeToList() {
-        addToListAndClear(list: &dislikes, item: &newDislike)
-    }
-    
     private func addToListAndClear(list: inout [String], item: inout String) {
         guard !item.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         list.append(item.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -154,10 +149,6 @@ struct RecipeInputView: View {
     
     private func deleteIngredient(_ ingredient: String) {
         ingredients.removeAll { $0 == ingredient }
-    }
-    
-    private func deleteDislike(_ dislike: String) {
-        dislikes.removeAll { $0 == dislike }
     }
     
     // MARK: - Submission Logic
@@ -273,8 +264,7 @@ struct RequestPreviewCard: View {
                RequestPreviewCard(
                    ingredientsFromProfile: ["Eggs", "Milk", "Flour"],
                    ingredientsFromGenerator: ["Chicken", "Onions", "Garlic"],
-                   dislikesFromProfile: ["Nuts", "Shellfish"],
-                   dislikesFromGenerator: ["Olives"]
+                   dislikesFromProfile: ["Nuts", "Shellfish"]
                )
                .padding()
            }
