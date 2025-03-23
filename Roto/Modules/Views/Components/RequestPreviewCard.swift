@@ -1,11 +1,4 @@
-//
-//  RequestPreviewCard.swift
-//  Roto
-//
-//  Created by Michael Bridges on 3/23/25.
-//
 import SwiftUI
-
 
 struct RequestPreviewCard: View {
     @Environment(\.appStyle) private var style
@@ -13,15 +6,18 @@ struct RequestPreviewCard: View {
     let ingredientsFromProfile: [String]
     let ingredientsFromGenerator: [String]
     let dislikesFromProfile: [String]
+    let notes: String
     
     init(
         ingredientsFromProfile: [String] = [],
         ingredientsFromGenerator: [String] = [],
-        dislikesFromProfile: [String] = []
+        dislikesFromProfile: [String] = [],
+        notes: String = ""
     ) {
         self.ingredientsFromProfile = ingredientsFromProfile
         self.ingredientsFromGenerator = ingredientsFromGenerator
         self.dislikesFromProfile = dislikesFromProfile
+        self.notes = notes
     }
     
     var body: some View {
@@ -42,6 +38,19 @@ struct RequestPreviewCard: View {
                     Text("\(ingredientsFromGenerator.count) ingredients added to request")
                         .font(.caption)
                         .foregroundColor(style.primaryColor)
+                }
+                
+                // Special requests section
+                if !notes.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "note.text")
+                            .foregroundColor(style.accentColor)
+                            .imageScale(.small)
+                        
+                        Text("Request: \(notes)")
+                            .font(.caption)
+                            .foregroundColor(style.primaryColor)
+                    }
                 }
                 
                 // Profile section - always show this section for consistent height
@@ -88,11 +97,10 @@ struct RequestPreviewCard: View {
                     }
                 }
                 .opacity(ingredientsFromProfile.isEmpty && dislikesFromProfile.isEmpty ? 0.5 : 1.0)
-                
             }
         }
         .padding(16)
-        .frame(height: 180) // Fixed height ensures consistent sizing
+        .frame(maxHeight: notes.isEmpty ? 180 : 200) // Adjust height based on notes
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .cornerRadius(16)
@@ -119,11 +127,12 @@ struct RequestPreviewCard_Previews: PreviewProvider {
             )
             .padding()
             
-            // With profile data
+            // With profile data and notes
             RequestPreviewCard(
                 ingredientsFromProfile: ["Eggs", "Milk", "Flour", "Salt", "Pepper"],
                 ingredientsFromGenerator: ["Chicken", "Onions"],
-                dislikesFromProfile: ["Nuts", "Shellfish"]
+                dislikesFromProfile: ["Nuts", "Shellfish"],
+                notes: "Use slow cooker"
             )
             .padding()
         }

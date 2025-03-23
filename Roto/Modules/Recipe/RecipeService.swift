@@ -12,13 +12,11 @@ final class RecipeService: RecipeServiceProtocol {
         self.apiClient = apiClient
     }
     
-    func generateRecipes(ingredients: [String], dislikes: [String]) async throws -> [Recipe] {
-        let payload = GenerateRecipePayload(ingredients: ingredients, dislikes: dislikes)
+    func generateRecipes(ingredients: [String], dislikes: [String], notes: String = "") async throws -> [Recipe] {
+        let payload = GenerateRecipePayload(ingredients: ingredients, dislikes: dislikes, notes: notes)
         let response: RecipeResponse = try await apiClient.postData(endpoint: "/generate", body: payload)
         
         // Convert DTOs to SwiftData models
         return response.recipe.map { $0.toModel() }
     }
 }
-
-

@@ -11,14 +11,16 @@ class RecipeInputViewModel: ObservableObject {
         self.recipeService = recipeService
     }
     
-    func generateRecipes(ingredients: [String], dislikes: [String]) async -> [Recipe]? {
+    func generateRecipes(ingredients: [String], dislikes: [String], notes: String) async -> [Recipe]? {
         isLoading = true
         error = nil
         
         do {
+            // Update to include notes in the recipe generation
             let recipes = try await recipeService.generateRecipes(
                 ingredients: ingredients,
-                dislikes: dislikes
+                dislikes: dislikes,
+                notes: notes
             )
             isLoading = false
             return recipes
@@ -38,6 +40,73 @@ class RecipeInputViewModel: ObservableObject {
 }
 
 
+// MARK: - IngredientsSection
+private struct IngredientsSection: View {
+    @Binding var ingredients: [String]
+    @Binding var newIngredient: String
+    let style: AppStyleConfig
+    let onAddIngredient: () -> Void
+    let onDeleteIngredient: (String) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            AppSectionHeader(title: "Ingredients")
+            
+            AppStyledTextField(
+                placeholder: "Eggs, Ground Beef, etc.",
+                text: $newIngredient,
+                onSubmit: onAddIngredient
+            )
+            
+            if !ingredients.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(ingredients, id: \.self) { ingredient in
+                        ListItemView(
+                            text: ingredient,
+                            onDelete: { onDeleteIngredient(ingredient) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - NotesSection
+private struct NotesSection: View {
+    @Binding var notes: String
+    let maxNotesLength: Int
+    let style: AppStyleConfig
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            AppSectionHeader(title: "Special Requests")
+            
+            TextField("Add a note such as \"Give me slow cooker recipes\" or \"Light meals perfect for spring\"", text: $notes, axis: .vertical)
+                .lineLimit(1)
+                .onChange(of: notes) { _, newValue in
+                    if newValue.count > maxNotesLength {
+                        notes = String(newValue.prefix(maxNotesLength))
+                    }
+                }
+                .appInputField(style)
+            
+            HStack {
+                Text("\(notes.count)/\(maxNotesLength)")
+                    .font(.caption)
+                    .foregroundColor(
+                        notes.count > Int(Double(maxNotesLength) * 0.8) ?
+                            (notes.count > maxNotesLength ? .red : .orange) :
+                            style.primaryColor.opacity(0.5)
+                    )
+            }
+        }
+    }
+}
+
+// Remove BottomActionSection since we're integrating it directly
+
+// MARK: - RecipeInputView
 struct RecipeInputView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.appStyle) private var style
@@ -52,79 +121,77 @@ struct RecipeInputView: View {
 
     @State private var ingredients: [String] = []
     @State private var newIngredient: String = ""
+    @State private var notes: String = ""
+    private let maxNotesLength = 300
 
     var body: some View {
         VStack(spacing: 0) {
             // Scrollable Content
             ScrollView {
                 VStack(alignment: .leading, spacing: style.sectionSpacing) {
-                    // Base Pantry Ingredients Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        AppSectionHeader(title: "Ingredients")
-                        
-                        AppStyledTextField(
-                            placeholder: "Eggs, Ground Beef, etc.",
-                            text: $newIngredient,
-                            onSubmit: addIngredientToList
-                        )
-                        
-                        if !ingredients.isEmpty {
-                            VStack(spacing: 8) {
-                                ForEach(ingredients, id: \.self) { ingredient in
-                                    ListItemView(
-                                        text: ingredient,
-                                        onDelete: { deleteIngredient(ingredient) }
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    // Ingredients Section
+                    IngredientsSection(
+                        ingredients: $ingredients,
+                        newIngredient: $newIngredient,
+                        style: style,
+                        onAddIngredient: addIngredientToList,
+                        onDeleteIngredient: deleteIngredient
+                    )
+                    
+                    // Notes Section - now always visible and part of scrollable area
+                    NotesSection(
+                        notes: $notes,
+                        maxNotesLength: maxNotesLength,
+                        style: style
+                    )
+                    
+                    // Add some space at the bottom for better scrolling experience
+                    Spacer()
+                        .frame(height: 16)
                 }
                 .padding(24)
             }
             
-            // Fixed Section at Bottom
-            VStack(spacing: 16) {
-                // Request Summary Card
-                RequestPreviewCard(
-                    ingredientsFromProfile: profileState.baseIngredients,
-                    ingredientsFromGenerator: ingredients,
-                    dislikesFromProfile: profileState.dislikes
-                )
-                .padding(.horizontal, 24)
-                
-                if let error = viewModel.error {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
-                }
-                
-                Divider()
-                
-                // Generate Button
-                Button(action: submitData) {
-                    HStack {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(0.8)
-                        } else {
-                            Text("Generate Recipe")
-                                .font(.system(size: 16, weight: .semibold))
-                            Image(systemName: "wand.and.stars")
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(viewModel.isLoading ? style.primaryColor.opacity(0.7) : style.primaryColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-                .disabled(viewModel.isLoading)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+            // Request Summary Card and Action Button
+            RequestPreviewCard(
+                ingredientsFromProfile: profileState.baseIngredients,
+                ingredientsFromGenerator: ingredients,
+                dislikesFromProfile: profileState.dislikes,
+                notes: notes
+            )
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+            
+            if let error = viewModel.error {
+                Text(error)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
             }
-            .background(style.backgroundColor)
+            
+            Divider()
+            
+            // Generate Button
+            Button(action: submitData) {
+                HStack {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8)
+                    } else {
+                        Text("Generate Recipe")
+                            .font(.system(size: 16, weight: .semibold))
+                        Image(systemName: "wand.and.stars")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(viewModel.isLoading ? style.primaryColor.opacity(0.7) : style.primaryColor)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+            .disabled(viewModel.isLoading)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
         }
         .background(style.backgroundColor)
         .navigationTitle("Recipe Generator")
@@ -156,13 +223,44 @@ struct RecipeInputView: View {
         // Combine current ingredients with profile ingredients
         let allIngredients = ingredients + profileState.baseIngredients
         
+        // Trim the notes if necessary
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalNotes = trimmedNotes.count > maxNotesLength ?
+                        String(trimmedNotes.prefix(maxNotesLength)) :
+                        trimmedNotes
+        
         Task {
             if let recipes = await viewModel.generateRecipes(
                 ingredients: allIngredients,
-                dislikes: profileState.dislikes
+                dislikes: profileState.dislikes,
+                notes: finalNotes
             ) {
                 navigationVM.navigateToRecipeList(recipes)
             }
         }
+    }
+}
+// MARK: - Preview Provider
+struct RecipeInputView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationStack {
+            GlobalStyledView {
+                RecipeInputView()
+                    .environment(createMockProfileState())
+            }
+        }
+        .environmentObject(NavigationViewModel())
+    }
+    
+    // Helper function to create a mock profile state
+    static func createMockProfileState() -> ProfileStateManager {
+        let context = try! ModelContainer(for: UserProfile.self).mainContext
+        let state = ProfileStateManager(modelContext: context)
+        
+        // Add some mock data for preview purposes
+        state.baseIngredients = ["Flour", "Sugar", "Salt"]
+        state.dislikes = ["Peanuts"]
+        
+        return state
     }
 }

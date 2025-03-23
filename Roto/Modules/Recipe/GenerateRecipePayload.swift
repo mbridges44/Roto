@@ -7,4 +7,11 @@
 struct GenerateRecipePayload: Encodable {
     let ingredients: [String]
     let dislikes: [String]
+    let notes: String
+    
+    init(ingredients: [String], dislikes: [String], notes: String = "") {
+        self.ingredients = ingredients
+        self.dislikes = dislikes
+        self.notes = notes
+    }
 }
