@@ -82,7 +82,7 @@ private struct NotesSection: View {
         VStack(alignment: .leading, spacing: 12) {
             AppSectionHeader(title: "Special Requests")
             
-            TextField("Add a note such as \"Give me slow cooker recipes\" or \"Light meals perfect for spring\"", text: $notes, axis: .vertical)
+            TextField("\"Only slow cooker recipes\" or \"Light meals perfect for spring\"", text: $notes, axis: .vertical)
                 .lineLimit(1)
                 .onChange(of: notes) { _, newValue in
                     if newValue.count > maxNotesLength {
@@ -92,6 +92,7 @@ private struct NotesSection: View {
                 .appInputField(style)
             
             HStack {
+                Spacer()
                 Text("\(notes.count)/\(maxNotesLength)")
                     .font(.caption)
                     .foregroundColor(
@@ -103,8 +104,6 @@ private struct NotesSection: View {
         }
     }
 }
-
-// Remove BottomActionSection since we're integrating it directly
 
 // MARK: - RecipeInputView
 struct RecipeInputView: View {
@@ -138,12 +137,27 @@ struct RecipeInputView: View {
                         onDeleteIngredient: deleteIngredient
                     )
                     
-                    // Notes Section - now always visible and part of scrollable area
+                    // Notes Section
                     NotesSection(
                         notes: $notes,
                         maxNotesLength: maxNotesLength,
                         style: style
                     )
+                    
+                    // Request Summary Card - moved to the scrollable area
+                    RequestPreviewCard(
+                        ingredientsFromProfile: profileState.baseIngredients,
+                        ingredientsFromGenerator: ingredients,
+                        dislikesFromProfile: profileState.dislikes,
+                        notes: notes
+                    )
+                    .padding(.vertical, 16)
+                    
+                    if let error = viewModel.error {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding(.horizontal)
+                    }
                     
                     // Add some space at the bottom for better scrolling experience
                     Spacer()
@@ -152,25 +166,9 @@ struct RecipeInputView: View {
                 .padding(24)
             }
             
-            // Request Summary Card and Action Button
-            RequestPreviewCard(
-                ingredientsFromProfile: profileState.baseIngredients,
-                ingredientsFromGenerator: ingredients,
-                dislikesFromProfile: profileState.dislikes,
-                notes: notes
-            )
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            
-            if let error = viewModel.error {
-                Text(error)
-                    .foregroundColor(.red)
-                    .padding(.horizontal)
-            }
-            
             Divider()
             
-            // Generate Button
+            // Generate Button - remains fixed at the bottom
             Button(action: submitData) {
                 HStack {
                     if viewModel.isLoading {
