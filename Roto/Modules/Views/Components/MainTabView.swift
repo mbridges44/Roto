@@ -6,7 +6,6 @@ struct MainTabView: View {
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
     @Environment(\.modelContext) private var modelContext
 
-    
     var body: some View {
         if isFirstLaunch {
             FirstTimeView()
@@ -41,16 +40,17 @@ struct MainTabView: View {
                     Label("Profile", systemImage: "person.fill")
                 }
             }
-            .tint(style.primaryColor) // Use your app's primary color for the tab bar
+            .tint(style.primaryColor)
+            .onAppear {
+                // Customize tab bar background color
+                let tabBarAppearance = UITabBarAppearance()
+                tabBarAppearance.configureWithOpaqueBackground()
+                tabBarAppearance.backgroundColor = UIColor(Color("TabBackground")) // Use our custom tab bar background color
+                
+                UITabBar.appearance().standardAppearance = tabBarAppearance
+                UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+            }
             .environmentObject(navigationVM)
         }
     }
-}
-
-// Preview provider
-#Preview {
-    GlobalStyledView {
-        MainTabView()
-    }
-    .modelContainer(for: UserProfile.self, inMemory: true)
 }
